@@ -18,7 +18,8 @@ static uint16_t reg[R_COUNT];
 
 static struct termios original_tio;
 
-void disable_input_buffering()
+static void
+disable_input_buffering()
 {
     tcgetattr(STDIN_FILENO, &original_tio);
     struct termios new_tio = original_tio;
@@ -26,12 +27,14 @@ void disable_input_buffering()
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 }
 
-void restore_input_buffering()
+static void
+restore_input_buffering()
 {
     tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
 }
 
-uint16_t check_key()
+static uint16_t
+check_key()
 {
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -43,14 +46,16 @@ uint16_t check_key()
     return select(1, &readfds, NULL, NULL, &timeout) != 0;
 }
 
-void handle_interrupt(int signal)
+static void
+handle_interrupt(int signal)
 {
     restore_input_buffering();
     printf("\n");
     exit(-2);
 }
 
-uint16_t sign_extend(uint16_t x, int bit_count)
+static uint16_t
+sign_extend(uint16_t x, int bit_count)
 {
     if ((x >> (bit_count - 1)) & 1) {
         x |= (0xFFFF << bit_count);
@@ -58,7 +63,8 @@ uint16_t sign_extend(uint16_t x, int bit_count)
     return x;
 }
 
-void update_flags(uint16_t r)
+static void
+update_flags(uint16_t r)
 {
     if (reg[r] == 0) {
         reg[R_COND] = FL_ZRO;
@@ -70,7 +76,8 @@ void update_flags(uint16_t r)
     }
 }
 
-void read_image_file(int fd)
+static void
+read_image_file(int fd)
 {
     /* the origin tells us where in memory to place the image */
     uint16_t origin;
@@ -89,7 +96,8 @@ void read_image_file(int fd)
     }
 }
 
-int read_image(const char* image_path)
+static int
+read_image(const char* image_path)
 {
     int fd = open(image_path, O_RDONLY);
     if (fd < 0) { return 0; };
@@ -98,12 +106,14 @@ int read_image(const char* image_path)
     return 1;
 }
 
-void mem_write(uint16_t address, uint16_t val)
+static void
+mem_write(uint16_t address, uint16_t val)
 {
     memory[address] = val;
 }
 
-uint16_t mem_read(uint16_t address)
+static uint16_t
+mem_read(uint16_t address)
 {
     if (address == MR_KBSR) {
         if (check_key()) {
@@ -116,7 +126,8 @@ uint16_t mem_read(uint16_t address)
     return memory[address];
 }
 
-int instruction_add(uint16_t instr)
+static int
+instruction_add(uint16_t instr)
 {
     /* Instruction format:
         Register mode (Mode bit 0):
@@ -155,7 +166,8 @@ int instruction_add(uint16_t instr)
     return 0;
 }
 
-int instruction_and(uint16_t instr)
+static int
+instruction_and(uint16_t instr)
 {
     /* Instruction format:
         Register mode (Mode bit 0):
@@ -191,7 +203,8 @@ int instruction_and(uint16_t instr)
     return 0;
 }
 
-int instruction_not(uint16_t instr)
+static int
+instruction_not(uint16_t instr)
 {
     /* Instruction Format:
         15          Dest    Src    Mode             0
@@ -209,7 +222,8 @@ int instruction_not(uint16_t instr)
     return 0;
 }
 
-int instruction_branch(uint16_t instr)
+static int
+instruction_branch(uint16_t instr)
 {
     /* Instruction Format:
     15          Flags   PCOffset9               0
@@ -235,7 +249,8 @@ int instruction_branch(uint16_t instr)
     return 0;
 }
 
-int instruction_jmp(uint16_t instr)
+static int
+instruction_jmp(uint16_t instr)
 {
     /* Instruction Format:
     JMP mode:
@@ -258,7 +273,8 @@ int instruction_jmp(uint16_t instr)
     return 0;
 }
 
-int instruction_jsr(uint16_t instr)
+static int
+instruction_jsr(uint16_t instr)
 {
     /* Instruction Format:
     JSR mode:
@@ -286,7 +302,8 @@ int instruction_jsr(uint16_t instr)
     return 0;
 }
 
-int instruction_ld(uint16_t instr)
+static int
+instruction_ld(uint16_t instr)
 {
     /* Instruction Format:
     15          Dest   PCOffset9                0
@@ -305,7 +322,8 @@ int instruction_ld(uint16_t instr)
     return 0;
 }
 
-int instruction_ldi(uint16_t instr)
+static int
+instruction_ldi(uint16_t instr)
 {
     /* Instruction Format:
         15          Dest   PCOffset9                0
@@ -330,7 +348,8 @@ int instruction_ldi(uint16_t instr)
     return 0;
 }
 
-int instruction_ldr(uint16_t instr)
+static int
+instruction_ldr(uint16_t instr)
 {
     /* Instruction Format:
         15          Dest   Base     Offset6         0
@@ -353,7 +372,8 @@ int instruction_ldr(uint16_t instr)
     return 0;
 }
 
-int instruction_lea(uint16_t instr)
+static int
+instruction_lea(uint16_t instr)
 {
     /* Instruction Format:
         15          Dest   PCOffset9                0
@@ -373,7 +393,8 @@ int instruction_lea(uint16_t instr)
     return 0;
 }
 
-int instruction_st(uint16_t instr)
+static int
+instruction_st(uint16_t instr)
 {
     /* Instruction Format:
     15          Src    PCOffset9                0
@@ -392,7 +413,8 @@ int instruction_st(uint16_t instr)
     return 0;
 }
 
-int instruction_sti(uint16_t instr)
+static int
+instruction_sti(uint16_t instr)
 {
     /* Instruction Format:
     15          Src    PCOffset9                0
@@ -411,7 +433,8 @@ int instruction_sti(uint16_t instr)
     return 0;
 }
 
-int instruction_str(uint16_t instr)
+static int
+instruction_str(uint16_t instr)
 {
     /* Instruction Format:
     15          Src    Base     Offset6         0
@@ -433,7 +456,8 @@ int instruction_str(uint16_t instr)
     return 0;
 }
 
-int instruction_trap(uint16_t instr)
+static int
+instruction_trap(uint16_t instr)
 {
     /* Instruction Format:
     15          Src         trapvect8         
@@ -523,19 +547,27 @@ static op_runner op_runners[] = {
     [OP_TRAP] = instruction_trap,
 };
 
-int main(int argc, const char* argv[])
-{
-    if (argc < 2) {
-        /* show usage string */
-        printf("lc3 [image-file1] ...\n");
-        exit(2);
-    }
+extern int parse_options(int argc, const char * const *argv, void (*usage_cb)(), char *prog, char *version, char *path);
 
-    for (int j = 1; j < argc; ++j) {
-        if (!read_image(argv[j])) {
-            printf("failed to load image: %s\n", argv[j]);
-            exit(1);
-        }
+
+#define PROG_NAME "lc3"
+#define PROG_VERSION "0.0.1"
+
+int
+main(int argc, const char* argv[])
+{
+    char path[1024];
+    int ret = parse_options(argc, argv, NULL, PROG_NAME, PROG_VERSION, path);
+    if (ret) {
+        exit(1);
+    }
+    if (path[0] == '\0') {
+        printf("no valid object file\n");
+        exit(1);
+    }
+    if (!read_image(path)) {
+        printf("failed to load image: %s\n", path);
+        exit(1);
     }
 
     signal(SIGINT, handle_interrupt);

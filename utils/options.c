@@ -10,7 +10,8 @@ static void
 usage(void (*usage_cb)(), char *prog, char *version)
 {
     printf("%s: %s\n\n", prog, version);
-    usage_cb();
+    if (usage_cb)
+        usage_cb();
     printf("\t--run, -r obj\tspecify the object\n");
     printf("\t--load, -l\n");
     printf("\t--version, -V\tshow program version\n");
