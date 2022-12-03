@@ -28,6 +28,8 @@ do {                            \
 #define log_info(fmt, ...) __pr(LOG_INFO, fmt, ##__VA_ARGS__)
 #define log_debug(fmt, ...) __pr(LOG_DEBUG, fmt, ##__VA_ARGS__)
 
+void log_set_level(int v);
+
 #define LOG()
 
 #ifdef __cplusplus

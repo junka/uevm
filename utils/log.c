@@ -27,3 +27,8 @@ logging_print(int level, const char *format, ...)
     va_end(args);
 }
 
+void
+log_set_level(int v)
+{
+    log_level = v;
+}

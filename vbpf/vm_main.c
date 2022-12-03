@@ -13,7 +13,6 @@
 #include "vm.h"
 
 static uint64_t reg[BPF_REG_MAX];
-static uint16_t pc = 0;
 
 struct section {
     int num;
@@ -88,7 +87,7 @@ lookup_xsym(const char *sn, size_t ofs, struct ebpf_insn *ins, size_t ins_sz)
     return 0;
 }
 
-
+#ifdef HAVE_ELF
 int
 ebpf_load_elf(const char *filename, const char *section)
 {
@@ -139,19 +138,19 @@ ebpf_load_elf(const char *filename, const char *section)
 
         /* Get section header */
         if (gelf_getshdr(scn, &sh) != &sh) {
-            log_info("fail to get section header for %u", sh.sh_name);
+            log_warn("fail to get section header for %u", sh.sh_name);
             goto done;
         }
         name = elf_strptr(elf, shstrndx, sh.sh_name);
         if (!name) {
-            log_info("fail to get strptr for %u", sh.sh_name);
+            log_warn("fail to get strptr for %u", sh.sh_name);
             goto done;
         }
-        log_info("get section name %s", name);
+        log_debug("get section name %s", name);
         if (!strcmp(name, BTF_ELF_SEC)) {
             Elf_Data *btf_data = elf_getdata(scn, 0);
             if (!btf_data) {
-                log_info("section .BTF with no data");
+                log_warn("section .BTF with no data");
                 goto done;
             }
             continue;
@@ -200,7 +199,7 @@ ebpf_load_elf(const char *filename, const char *section)
     if (sd == NULL|| sd->d_size == 0 ||
         sd->d_size % sizeof(struct ebpf_insn) != 0) {
         err = elf_errno();
-        log_info("fail to read section data");
+        log_warn("fail to read section data");
         goto done;
     }
     /* record the first section to process */
@@ -209,10 +208,10 @@ ebpf_load_elf(const char *filename, const char *section)
 
     switch (gelf_getclass(elf)) {
     case ELFCLASS32:
-        log_info("ELFCLASS32");
+        log_debug("ELFCLASS32");
         break;
     case ELFCLASS64:
-        log_info("ELFCLASS64");
+        log_debug("ELFCLASS64");
         break;
     default:
         break;
@@ -276,14 +275,14 @@ done:
     close(fd);
     return err;
 }
-
+#else
 int
-ebpf_load_raw(const char *filename)
+ebpf_load_raw(const char *filename, char *section)
 {
     int err = -1;
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
-        log_info("fail to open file %s", filename);
+        log_error("fail to open file %s", filename);
         goto done;
     }
     int filesize = lseek(fd, 0, SEEK_END);
@@ -306,7 +305,7 @@ done:
     close(fd);
     return err;
 }
-
+#endif
 /* Programs with unreachable instructions and/or loops will be rejected.*/
 int
 ebpf_validate(struct ebpf_insn* insts, uint32_t num_insts)
@@ -499,21 +498,38 @@ ebpf_validate(struct ebpf_insn* insts, uint32_t num_insts)
 #define MEM_LOAD(addr, type) (*(type *)addr)
 #define MEM_STORE(addr, type, value) *(type *)(addr) = value
 
+#define PROG_NAME "vbpf"
+#define PROG_VERSION "0.0.1"
+
+static void
+usage()
+{
+    printf(PROG_NAME " options:\n");
+}
+
+
+extern int parse_options(int argc, const char * const *argv, void (*usage_cb)(), char *prog, char *version, char *path);
+
 int main(int argc, const char *argv[])
 {
-    if (argc < 2) {
-        /* show usage string */
-        printf("vbpf [image-file1] ...\n");
-        exit(2);
+    char path[1024];
+    int ret = parse_options(argc, argv, usage, PROG_NAME, PROG_VERSION, path);
+    if (ret) {
+        exit(1);
     }
-    log_info("trying using elf");
-    for (int j = 1; j < argc; ++j) {
-        if (ebpf_load_elf(argv[j], NULL)) {
-            printf("failed to load image: %s\n", argv[j]);
-            exit(1);
-        }
+    if (path[0] == '\0') {
+        printf("no valid object file\n");
+        exit(1);
     }
-    // int num = ebpf_load_raw(argv[1]);
+
+#ifdef HAVE_ELF
+    if (ebpf_load_elf(path, NULL)) {
+#else
+    if (ebpf_load_raw(path, NULL)) {
+#endif
+        printf("failed to load image: %s\n", path);
+        exit(1);
+     }
 
     struct ebpf_insn *insn = vm_section[0].ins;
     int num = vm_section[0].num;

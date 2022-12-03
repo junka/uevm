@@ -80,6 +80,7 @@ find_package_handle_standard_args(
 if(LibELF_FOUND)
     set(LibELF_INCLUDE_DIRS ${LibELF_INCLUDE_DIR} ${SYS_USER_INCLUDE})
     set(LibELF_LIBRARIES ${LibELF_LIBRARIES})
+    add_compile_definitions(HAVE_ELF)
 
     # Because we only report the library with the largest version, we are guaranteed there
     # is only one file in LibELF_LIBRARIES

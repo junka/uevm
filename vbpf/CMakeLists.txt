@@ -13,7 +13,8 @@ endif(NOT LibELF_FOUND)
 set(SOURCE_FILES
     vm_main.c)
 
-file(GLOB UTILS_SOURCE "${VBPF_ROOT}/../utils/log.c")
+file(GLOB UTILS_SOURCE "${VBPF_ROOT}/../utils/log.c"
+    "${VBPF_ROOT}/../utils/options.c")
 
 include_directories(${VBPF_ROOT}/../utils)
 
